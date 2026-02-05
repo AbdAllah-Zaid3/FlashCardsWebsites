@@ -1,13 +1,15 @@
 
 import React, { useMemo } from 'react';
 import { Flashcard, WordProgress } from '../types';
+import { translations, Language } from '../localization';
 
 interface ProgressModeProps {
   allWords: Flashcard[];
   wordProgress: WordProgress;
+  language: Language; // Added language prop
 }
 
-const ProgressMode: React.FC<ProgressModeProps> = ({ allWords, wordProgress }) => {
+const ProgressMode: React.FC<ProgressModeProps> = ({ allWords, wordProgress, language }) => {
   const stats = useMemo(() => {
     const totalWords = allWords.length;
     let attemptedWords = 0;
@@ -33,8 +35,8 @@ const ProgressMode: React.FC<ProgressModeProps> = ({ allWords, wordProgress }) =
         totalAttempts > 0 ? ((correctAttempts / totalAttempts) * 100).toFixed(0) : 'N/A';
 
       const nextReviewDate = lastReviewed > 0 && interval > 0
-        ? new Date(lastReviewed + interval * 24 * 60 * 60 * 1000).toLocaleDateString()
-        : 'Not yet reviewed';
+        ? new Date(lastReviewed + interval * 24 * 60 * 60 * 1000).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US')
+        : translations.notYetReviewed[language];
 
       return {
         ...word,
@@ -49,7 +51,7 @@ const ProgressMode: React.FC<ProgressModeProps> = ({ allWords, wordProgress }) =
 
     const consistentlyWrongWords = detailedProgress.filter(
       (word) => word.incorrectAttempts > 0 && word.repetitions < 3
-    ).sort((a, b) => b.incorrectAttempts - a.incorrectAttempts); // Sort by most incorrect
+    ).sort((a, b) => b.incorrectAttempts - a.incorrectAttempts);
 
     return {
       totalWords,
@@ -58,50 +60,54 @@ const ProgressMode: React.FC<ProgressModeProps> = ({ allWords, wordProgress }) =
       detailedProgress,
       consistentlyWrongWords,
     };
-  }, [allWords, wordProgress]);
+  }, [allWords, wordProgress, language]);
+
+  const currentDir = language === 'ar' ? 'rtl' : 'ltr';
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 bg-white rounded-xl shadow-lg border border-indigo-200">
-      <h2 className="text-3xl font-extrabold text-indigo-700 mb-6 text-center">Your Learning Progress</h2>
+    <div className="p-4 md:p-6 lg:p-8 bg-white rounded-xl shadow-lg border border-indigo-200" dir={currentDir}>
+      <h2 className="text-3xl font-extrabold text-indigo-700 mb-6 text-center">
+        {translations.yourLearningProgress[language]}
+      </h2>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 text-center">
         <div className="bg-indigo-50 p-4 rounded-lg shadow-sm border border-indigo-100">
-          <p className="text-lg text-gray-600">Total Words</p>
+          <p className="text-lg text-gray-600">{translations.totalWords[language]}</p>
           <p className="text-4xl font-bold text-indigo-800">{stats.totalWords}</p>
         </div>
         <div className="bg-blue-50 p-4 rounded-lg shadow-sm border border-blue-100">
-          <p className="text-lg text-gray-600">Attempted Words</p>
+          <p className="text-lg text-gray-600">{translations.attemptedWords[language]}</p>
           <p className="text-4xl font-bold text-blue-800">{stats.attemptedWords}</p>
         </div>
         <div className="bg-green-50 p-4 rounded-lg shadow-sm border border-green-100">
-          <p className="text-lg text-gray-600">Mastered Words</p>
+          <p className="text-lg text-gray-600">{translations.masteredWords[language]}</p>
           <p className="text-4xl font-bold text-green-800">{stats.masteredWords}</p>
         </div>
       </div>
 
       {stats.consistentlyWrongWords.length > 0 && (
         <div className="mb-8">
-          <h3 className="text-2xl font-bold text-red-600 mb-4">Words to Focus On</h3>
+          <h3 className="text-2xl font-bold text-red-600 mb-4">{translations.wordsToFocusOn[language]}</h3>
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {stats.consistentlyWrongWords.map((word) => (
               <li key={word.id} className="bg-red-50 p-3 rounded-md shadow-sm border border-red-100 text-right" dir="rtl">
-                <span className="font-semibold text-red-800">{word.hebrew}</span>: {word.arabic} ({word.incorrectAttempts} incorrect)
+                <span className="font-semibold text-red-800">{word.hebrew}</span>: {word.arabic} ({word.incorrectAttempts} {translations.incorrectCount[language]})
               </li>
             ))}
           </ul>
         </div>
       )}
 
-      <h3 className="text-2xl font-bold text-indigo-700 mb-4">Detailed Word Progress</h3>
+      <h3 className="text-2xl font-bold text-indigo-700 mb-4">{translations.detailedWordProgress[language]}</h3>
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white border border-gray-200 rounded-lg">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200 text-gray-600 text-sm md:text-base">
-              <th className="py-3 px-4 text-right">Hebrew</th>
-              <th className="py-3 px-4 text-right">Arabic</th>
-              <th className="py-3 px-4 text-center">Correct %</th>
-              <th className="py-3 px-4 text-center">Mastered</th>
-              <th className="py-3 px-4 text-center">Next Review</th>
+              <th className="py-3 px-4 text-right">{translations.hebrew[language]}</th>
+              <th className="py-3 px-4 text-right">{translations.arabic[language]}</th>
+              <th className="py-3 px-4 text-center">{translations.correctPercentage[language]}</th>
+              <th className="py-3 px-4 text-center">{translations.mastered[language]}</th>
+              <th className="py-3 px-4 text-center">{translations.nextReview[language]}</th>
             </tr>
           </thead>
           <tbody>
@@ -112,9 +118,9 @@ const ProgressMode: React.FC<ProgressModeProps> = ({ allWords, wordProgress }) =
                 <td className="py-3 px-4 text-center">{word.correctnessPercentage !== 'N/A' ? `${word.correctnessPercentage}%` : 'N/A'}</td>
                 <td className="py-3 px-4 text-center">
                   {word.mastered ? (
-                    <span className="text-green-600 font-semibold" aria-label="Mastered">✓</span>
+                    <span className="text-green-600 font-semibold" aria-label={translations.mastered[language]}>✓</span>
                   ) : (
-                    <span className="text-red-400" aria-label="Not mastered">✗</span>
+                    <span className="text-red-400" aria-label={translations.notYetReviewed[language]}>✗</span>
                   )}
                 </td>
                 <td className="py-3 px-4 text-center">{word.nextReviewDate}</td>

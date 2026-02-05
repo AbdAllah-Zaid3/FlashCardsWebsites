@@ -1,5 +1,5 @@
 {
-  "name": " Hebrew Arabic Flashcards-Abdallah-Zaid",
-  "description": "An interactive web application to help memorize Hebrew to Arabic vocabulary words through flashcards and quizzes, tracking incorrect answers for focused practice.",
+  "name": "Hebrew Arabic Flashcards-Abdallah-Zaid",
+  "description": "An interactive web application to help memorize Hebrew to Arabic vocabulary words through flashcards, quizzes, and Yael exam practice, with progress tracking and UI localization.",
   "requestFramePermissions": []
 }

@@ -10,7 +10,10 @@ export enum AppMode {
   FLASHCARDS = 'flashcards',
   QUIZ = 'quiz',
   PRACTICE_WRONG = 'practice_wrong',
-  PROGRESS = 'progress', // New mode
+  PROGRESS = 'progress',
+  YAEL_LANDING = 'yael_landing', // New mode for Yael selection
+  YAEL_SENTENCE_COMPLETION = 'yael_sentence_completion',
+  YAEL_REPHRASING = 'yael_rephrasing',
 }
 
 export interface WordStatus {
@@ -25,3 +28,19 @@ export interface WordStatus {
 }
 
 export type WordProgress = { [id: string]: WordStatus };
+
+export interface YaelSentenceCompletionQuestion {
+  id: string;
+  sentenceWithBlank: string; // "הוא אהב את הספר ___ לא מצא זמן לקרוא אותו."
+  correctAnswer: string;
+  options: string[]; // ['אבל', 'בגלל', 'לכן', 'אף על פי']
+  explanation?: string;
+}
+
+export interface YaelRephrasingQuestion {
+  id: string;
+  originalSentence: string;
+  rephrasedOptions: string[];
+  correctOptionIndex: number;
+  explanation?: string;
+}

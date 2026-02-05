@@ -2,13 +2,15 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Flashcard, WordProgress } from '../types';
 import Button from './Button';
+import { translations, Language } from '../localization';
 
 interface QuizModeProps {
   words: Flashcard[];
   onQuizComplete: (updatedProgress: WordProgress) => void;
   wordProgress: WordProgress;
-  isPracticeWrongMode?: boolean; // New prop to indicate if it's the practice wrong mode
+  isPracticeWrongMode?: boolean;
   onPracticeWrongComplete?: (remainingWrongWords: Flashcard[]) => void;
+  language: Language; // Added language prop
 }
 
 // Constants for Spaced Repetition
@@ -23,6 +25,7 @@ const QuizMode: React.FC<QuizModeProps> = ({
   wordProgress,
   isPracticeWrongMode = false,
   onPracticeWrongComplete,
+  language,
 }) => {
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [userInput, setUserInput] = useState('');
@@ -31,16 +34,14 @@ const QuizMode: React.FC<QuizModeProps> = ({
   const [quizFinished, setQuizFinished] = useState(false);
 
   const sortedWords = useMemo(() => {
-    // If in practice wrong mode, use the provided words as they are already curated
     if (isPracticeWrongMode) {
       return [...words];
     }
 
-    // Otherwise, implement spaced repetition sorting for regular quiz mode
     const now = Date.now();
     return [...words].sort((a, b) => {
-      const statusA = wordProgress[a.id] || { repetitions: 0, interval: 0, easeFactor: INITIAL_EASE_FACTOR, lastReviewed: 0 };
-      const statusB = wordProgress[b.id] || { repetitions: 0, interval: 0, easeFactor: INITIAL_EASE_FACTOR, lastReviewed: 0 };
+      const statusA = wordProgress[a.id] || { repetitions: 0, interval: 0, easeFactor: INITIAL_EASE_FACTOR, lastReviewed: 0, correctAttempts: 0, incorrectAttempts: 0, lastAttemptCorrect: null };
+      const statusB = wordProgress[b.id] || { repetitions: 0, interval: 0, easeFactor: INITIAL_EASE_FACTOR, lastReviewed: 0, correctAttempts: 0, incorrectAttempts: 0, lastAttemptCorrect: null };
 
       // Prioritize recently incorrect words
       if (statusA.lastAttemptCorrect === false && statusB.lastAttemptCorrect !== false) return -1;
@@ -58,17 +59,14 @@ const QuizMode: React.FC<QuizModeProps> = ({
       if (!isDueA && isDueB) return 1;
 
       if (isDueA && isDueB) {
-        // Among due cards, prioritize older ones
         if (nextReviewA < nextReviewB) return -1;
         if (nextReviewB < nextReviewA) return 1;
       }
 
-      // If neither is due or both are due at similar times, prioritize by ease factor (lower easeFactor first)
       if (statusA.easeFactor < statusB.easeFactor) return -1;
       if (statusB.easeFactor < statusA.easeFactor) return 1;
 
-      // Finally, shuffle remaining with a consistent random sort if all else equal
-      return 0; // Maintain original order if no specific priority
+      return 0;
     });
   }, [words, wordProgress, isPracticeWrongMode]);
 
@@ -110,7 +108,7 @@ const QuizMode: React.FC<QuizModeProps> = ({
 
     if (isCorrect) {
       setFeedback('correct');
-      setFeedbackMessage('Correct!');
+      setFeedbackMessage(translations.correct[language]);
       status.correctAttempts += 1;
       status.lastAttemptCorrect = true;
 
@@ -125,20 +123,19 @@ const QuizMode: React.FC<QuizModeProps> = ({
       }
       status.interval = Math.round(newInterval);
       status.lastReviewed = Date.now();
-      // No change to easeFactor on correct for this simplified version
     } else {
       setFeedback('incorrect');
-      setFeedbackMessage(`Incorrect. The correct answer is: ${currentWord.arabic}`);
+      setFeedbackMessage(`${translations.incorrect[language]} ${currentWord.arabic}`);
       status.incorrectAttempts += 1;
       status.lastAttemptCorrect = false;
 
-      status.repetitions = 0; // Reset repetitions on incorrect
-      status.interval = 1; // Re-show quickly
+      status.repetitions = 0;
+      status.interval = 1;
       status.easeFactor = Math.max(MIN_EASE_FACTOR, status.easeFactor - DECREMENT_EASE_FACTOR);
       status.lastReviewed = Date.now();
     }
     onQuizComplete(updatedProgress);
-  }, [currentWord, userInput, wordProgress, initializeWordStatus, onQuizComplete]);
+  }, [currentWord, userInput, wordProgress, initializeWordStatus, onQuizComplete, language]);
 
   const handleNextWord = useCallback(() => {
     setUserInput('');
@@ -150,7 +147,6 @@ const QuizMode: React.FC<QuizModeProps> = ({
     } else {
       setQuizFinished(true);
       if (isPracticeWrongMode && onPracticeWrongComplete) {
-        // For practice wrong mode, re-filter based on current mastery
         const remainingWrongWords = sortedWords.filter(
           (word) => wordProgress[word.id]?.repetitions < 3 || wordProgress[word.id]?.lastAttemptCorrect === false
         );
@@ -161,34 +157,35 @@ const QuizMode: React.FC<QuizModeProps> = ({
 
   const totalWords = words.length;
   const completedWords = currentWordIndex;
+  const currentDir = language === 'ar' ? 'rtl' : 'ltr';
 
   if (words.length === 0) {
     return (
-      <div className="text-center text-gray-600 text-lg mt-8">
-        No words available for quiz. Please add some words.
+      <div className="text-center text-gray-600 text-lg mt-8" dir={currentDir}>
+        {translations.noFlashcards[language]}
       </div>
     );
   }
 
   if (quizFinished) {
     return (
-      <div className="flex flex-col items-center justify-center p-6 text-center">
-        <p className="text-3xl font-bold text-green-700 mb-4">Quiz Finished!</p>
-        <p className="text-xl text-gray-700">You've completed all words in this round.</p>
+      <div className="flex flex-col items-center justify-center p-6 text-center" dir={currentDir}>
+        <p className="text-3xl font-bold text-green-700 mb-4">{translations.quizFinished[language]}</p>
+        <p className="text-xl text-gray-700">{translations.quizCompleted[language]}</p>
         {isPracticeWrongMode && (
           <p className="text-lg text-gray-600 mt-2">
-            You can continue practicing incorrect words or switch modes.
+            {translations.continuePracticing[language]}
           </p>
         )}
         <Button onClick={() => window.location.reload()} className="mt-6">
-          Start Another Round
+          {translations.restartQuiz[language]}
         </Button>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center p-4">
+    <div className="flex flex-col items-center justify-center p-4" dir={currentDir}>
       <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-6 md:p-8 border border-indigo-200">
         <p className="text-lg font-semibold text-gray-700 mb-2">
           {completedWords + 1} / {totalWords}
@@ -201,7 +198,7 @@ const QuizMode: React.FC<QuizModeProps> = ({
           type="text"
           value={userInput}
           onChange={(e) => setUserInput(e.target.value)}
-          placeholder="Type Arabic translation here"
+          placeholder={translations.typeArabicTranslation[language]}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg text-lg text-right focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4"
           dir="rtl"
           disabled={!!feedback}
@@ -209,7 +206,7 @@ const QuizMode: React.FC<QuizModeProps> = ({
 
         {!feedback ? (
           <Button onClick={handleSubmit} className="w-full">
-            Check Answer
+            {translations.checkAnswer[language]}
           </Button>
         ) : (
           <div className="mt-4 animate-fade-in">
@@ -222,7 +219,7 @@ const QuizMode: React.FC<QuizModeProps> = ({
               {feedbackMessage}
             </p>
             <Button onClick={handleNextWord} variant="secondary" className="w-full">
-              Next Word
+              {translations.nextWord[language]}
             </Button>
           </div>
         )}
